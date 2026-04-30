@@ -3,12 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>English Practice Portal</title>
+    <title>Practice Portal | Assessment System</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
     <style>
         :root { --ink: #1a1a2e; --paper: #faf8f4; --accent: #c8963e; --rule: #e0d9cf; }
-        body { font-family: 'Source Serif 4', serif; background: var(--paper); color: var(--ink); }
+        body { font-family: 'Source Serif 4', serif; background: var(--paper); color: var(--ink); margin: 0; }
         .font-display { font-family: 'Playfair Display', serif; }
         .test-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
         .test-card { background: white; border: 1px solid var(--rule); padding: 24px; border-radius: 8px; transition: all 0.3s; }
@@ -19,6 +19,9 @@
         .option-btn { width: 100%; text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--rule); transition: 0.2s; }
         .option-btn.selected { background: var(--accent); color: white; }
         .correction { background: #fdf3e0; border-left: 4px solid var(--accent); padding: 15px; margin: 10px 0; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--rule); }
+        th { background: #f8f9fa; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
     </style>
 </head>
 <body>
@@ -39,7 +42,7 @@
         <div class="test-grid" id="library-container"></div>
     </div>
 
-    <!-- SCREEN: ADMIN LOGIN (With Back Button) -->
+    <!-- SCREEN: ADMIN LOGIN -->
     <div id="screen-admin-login" class="screen py-20 text-center">
         <div class="max-w-xs mx-auto border p-10 bg-white rounded shadow-sm">
             <h2 class="font-display text-2xl mb-6">Admin Access</h2>
@@ -54,7 +57,6 @@
         <h2 class="font-display text-4xl mb-4" id="active-test-title"></h2>
         <input type="text" id="student-name" placeholder="Enter Your Name" class="border p-4 w-80 rounded mb-4 block mx-auto text-center">
         <button onclick="beginExam()" class="bg-[#1a1a2e] text-[#e8b96a] px-10 py-4 rounded font-bold">Start Test</button>
-        <button onclick="showScreen('selector')" class="block mx-auto mt-4 text-sm text-gray-500">Cancel</button>
     </div>
 
     <!-- SCREEN: EXAM -->
@@ -63,7 +65,7 @@
         <button onclick="submitExam()" class="w-full bg-[#1a1a2e] text-white p-5 rounded font-bold mt-10">Submit Answers</button>
     </div>
 
-    <!-- SCREEN: RESULTS -->
+    <!-- SCREEN: RESULTS (STUDENT VIEW) -->
     <div id="screen-results" class="screen max-w-2xl mx-auto">
         <div class="text-center mb-10">
             <h2 class="font-display text-5xl mb-2" id="final-score"></h2>
@@ -75,18 +77,41 @@
 
     <!-- SCREEN: ADMIN DASHBOARD -->
     <div id="screen-admin" class="screen">
-        <h2 class="font-display text-3xl mb-8">Admin: Upload Questions</h2>
-        <div class="bg-white border p-6 rounded mb-6">
-            <label class="block mb-2 font-bold">Target Test Slot:</label>
+        <h2 class="font-display text-3xl mb-8">Admin Dashboard</h2>
+        
+        <!-- UPLOAD SECTION -->
+        <div class="bg-white border p-6 rounded mb-8">
+            <h3 class="font-bold mb-4">Upload Questions</h3>
             <select id="upload-target" class="border w-full p-2 mb-4">
                 <option value="test_1">Practice Test 1</option>
                 <option value="test_2">Practice Test 2</option>
                 <option value="test_3">Practice Test 3</option>
             </select>
-            <label class="block mb-2 font-bold">JSON Data:</label>
-            <textarea id="json-input" rows="8" class="w-full border p-4 font-mono text-xs mb-4" placeholder='[{"id":1, "text":"Question...", "options":["A","B","C","D"], "answer":"A", "explanation":"Why..."}]'></textarea>
+            <textarea id="json-input" rows="5" class="w-full border p-4 font-mono text-xs mb-4" placeholder='Paste JSON array here...'></textarea>
             <button onclick="processUpload()" class="bg-amber-600 text-white px-6 py-2 rounded">Unlock Test</button>
         </div>
+
+        <!-- RESULTS SECTION -->
+        <div class="bg-white border p-6 rounded mb-8">
+            <h3 class="font-bold mb-4">Student Submissions</h3>
+            <div class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Student Name</th>
+                            <th>Test</th>
+                            <th>Score</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="admin-results-table">
+                        <!-- Rows rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+            <button onclick="clearAllData()" class="mt-4 text-xs text-red-500 hover:underline">Clear All Data</button>
+        </div>
+
         <button onclick="showScreen('selector')" class="text-blue-600 hover:underline">Back to Student View</button>
     </div>
 </div>
@@ -123,6 +148,7 @@
     function showScreen(id) {
         document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
         document.getElementById('screen-' + id).classList.add('active');
+        if(id === 'admin') renderAdminResults();
         window.scrollTo(0,0);
     }
 
@@ -140,6 +166,22 @@
             renderLibrary();
             showScreen('selector');
         } catch(e) { alert("Format Error: Ensure your JSON is correct."); }
+    }
+
+    function renderAdminResults() {
+        const results = JSON.parse(localStorage.getItem('atp_results') || '[]');
+        const tbody = document.getElementById('admin-results-table');
+        tbody.innerHTML = results.length ? '' : '<tr><td colspan="4" class="text-center text-gray-400 py-4">No results yet.</td></tr>';
+        
+        results.reverse().forEach(res => {
+            tbody.innerHTML += `
+                <tr>
+                    <td class="font-bold">${res.name}</td>
+                    <td>${res.testTitle}</td>
+                    <td>${res.score}</td>
+                    <td class="text-xs text-gray-400">${res.date}</td>
+                </tr>`;
+        });
     }
 
     function prepareExam(key) {
@@ -183,6 +225,7 @@
         let correctCount = 0;
         const review = document.getElementById('review-container');
         review.innerHTML = '';
+        
         questions.forEach((q, idx) => {
             const isCorrect = session.answers[idx] === q.answer;
             if (isCorrect) correctCount++;
@@ -193,9 +236,29 @@
                     ${!isCorrect ? `<div class="correction"><strong>Rule:</strong> ${q.explanation}</div>` : ''}
                 </div>`;
         });
-        document.getElementById('final-score').innerText = `${correctCount}/${questions.length}`;
+
+        const scoreString = `${correctCount}/${questions.length}`;
+        document.getElementById('final-score').innerText = scoreString;
         document.getElementById('final-grade').innerText = (correctCount/questions.length >= 0.7) ? "Status: Passed" : "Status: Further Study Advised";
+
+        // SAVE TO LOCALSTORAGE FOR ADMIN
+        const results = JSON.parse(localStorage.getItem('atp_results') || '[]');
+        results.push({
+            name: session.studentName,
+            testTitle: db[session.activeTest].title,
+            score: scoreString,
+            date: new Date().toLocaleString()
+        });
+        localStorage.setItem('atp_results', JSON.stringify(results));
+
         showScreen('results');
+    }
+
+    function clearAllData() {
+        if(confirm("This will delete ALL student scores and ALL uploaded tests. Continue?")) {
+            localStorage.clear();
+            location.reload();
+        }
     }
 
     init();
