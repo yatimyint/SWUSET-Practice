@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Assessment Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:wght@400;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ink: #1a1a2e; --paper: #faf8f4; --accent: #c8963e;
+            --wrong: #9b2226; --correct: #2d6a4f; --rule: #e0d9cf;
+        }
+        body { font-family: 'Source Serif 4', serif; background: var(--paper); color: var(--ink); }
+        .font-display { font-family: 'Playfair Display', serif; }
+        
+        /* Test Cards */
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; margin-top: 30px; }
+        .test-card { 
+            background: white; border: 1px solid var(--rule); padding: 24px; 
+            border-radius: 8px; transition: all 0.3s; position: relative;
+        }
+        .test-card.locked { opacity: 0.6; cursor: not-allowed; filter: grayscale(1); }
+        .test-card.available:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); border-color: var(--accent); }
+        
+        .status-badge { 
+            font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; 
+            padding: 4px 8px; border-radius: 4px; font-weight: 700;
+        }
+        .status-locked { background: #eee; color: #777; }
+        .status-ready { background: var(--correct); color: white; }
+
+        .screen { display: none; }
+        .screen.active { display: block; }
+        
+        /* Styling for the Exam */
+        .question-card { background: white; border: 1px solid var(--rule); margin-bottom: 20px; border-radius: 6px; overflow: hidden; }
+        .option-btn { width: 100%; text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--rule); transition: 0.2s; }
+        .option-btn:hover { background: #fdf3e0; }
+        .option-btn.selected { background: #c8963e; color: white; }
+        
+        /* Correction Box */
+        .correction { background: #fdf3e0; border-left: 4px solid var(--accent); padding: 15px; margin: 10px 20px; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="max-w-5xl mx-auto px-6 py-10">
+    
+    <!-- HEADER -->
+    <header class="flex justify-between items-center border-bottom pb-6 mb-10 border-b border-[#e0d9cf]">
+        <div>
+            <h1 class="font-display text-3xl">Assessment Library</h1>
+            <p class="text-sm text-gray-500 uppercase tracking-widest">Select an active test to begin</p>
+        </div>
+        <button onclick="showScreen('admin-login')" class="text-xs border border-gray-400 px-4 py-2 rounded hover:bg-gray-100">Admin Login</button>
+    </header>
+
+    <!-- SCREEN: TEST SELECTOR -->
+    <div id="screen-selector" class="screen active">
+        <div class="test-grid" id="library-container">
+            <!-- Tests generated via JS -->
+        </div>
+    </div>
+
+    <!-- SCREEN: START EXAM (Name Prompt) -->
+    <div id="screen-start" class="screen text-center py-20">
+        <h2 class="font-display text-4xl mb-4" id="active-test-title">Test Name</h2>
+        <p class="mb-8 text-gray-600">Please enter your name to start the session.</p>
+        <input type="text" id="student-name" placeholder="Full Name" class="border p-4 w-80 rounded mb-4 block mx-auto text-center">
+        <button onclick="beginExam()" class="bg-[#1a1a2e] text-[#e8b96a] px-10 py-4 rounded font-bold">Start Examination</button>
+    </div>
+
+    <!-- SCREEN: EXAM -->
+    <div id="screen-exam" class="screen">
+        <div id="questions-container" class="max-w-2xl mx-auto"></div>
+        <button onclick="submitExam()" class="w-full bg-[#1a1a2e] text-white p-5 rounded font-bold mt-10">Submit All Answers</button>
+    </div>
+
+    <!-- SCREEN: RESULTS -->
+    <div id="screen-results" class="screen max-w-2xl mx-auto">
+        <div class="text-center mb-10">
+            <h2 class="font-display text-5xl mb-2" id="final-score">0/0</h2>
+            <p class="text-xl text-gray-600" id="final-grade">Grade: F</p>
+        </div>
+        <div id="review-container"></div>
+        <button onclick="location.reload()" class="w-full mt-10 border border-black p-4 rounded">Return to Library</button>
+    </div>
+
+    <!-- SCREEN: ADMIN LOGIN -->
+    <div id="screen-admin-login" class="screen text-center py-20">
+        <div class="max-w-xs mx-auto border p-10 bg-white rounded shadow-sm">
+            <h2 class="font-display text-2xl mb-6">Admin Access</h2>
+            <input type="password" id="admin-pass" placeholder="Password" class="border w-full p-2 mb-4">
+            <button onclick="checkAdmin()" class="bg-black text-white w-full p-2 rounded">Login</button>
+        </div>
+    </div>
+
+    <!-- SCREEN: ADMIN DASHBOARD -->
+    <div id="screen-admin" class="screen">
+        <h2 class="font-display text-3xl mb-8">Admin Dashboard</h2>
+        
+        <div class="bg-white border p-6 rounded mb-10">
+            <h3 class="font-bold mb-4">Upload Test Content</h3>
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <select id="upload-target" class="border p-2">
+                    <option value="test_1">Test 1</option>
+                    <option value="test_2">Test 2</option>
+                    <option value="test_3">Test 3</option>
+                </select>
+                <button onclick="processUpload()" class="bg-amber-600 text-white p-2 rounded">Upload & Unlock</button>
+            </div>
+            <textarea id="json-input" rows="6" class="w-full border p-4 font-mono text-xs" placeholder="Paste Question JSON here..."></textarea>
+        </div>
+
+        <button onclick="showScreen('selector')" class="text-blue-600 underline">Back to Library</button>
+    </div>
+
+</div>
+
+<script>
+    // --- DATABASE ---
+    let db = {
+        test_1: { title: "Diagnostic Test 1", questions: null },
+        test_2: { title: "Vocabulary Review", questions: null },
+        test_3: { title: "Final Proficiency", questions: null }
+    };
+
+    let session = {
+        activeTest: null,
+        studentName: "",
+        answers: {}
+    };
+
+    function init() {
+        // Load from LocalStorage
+        const savedDB = localStorage.getItem('atp_db');
+        if (savedDB) db = JSON.parse(savedDB);
+        renderLibrary();
+    }
+
+    function renderLibrary() {
+        const container = document.getElementById('library-container');
+        container.innerHTML = '';
+        
+        Object.keys(db).forEach(key => {
+            const test = db[key];
+            const isLocked = test.questions === null;
+            
+            const card = document.createElement('div');
+            card.className = `test-card ${isLocked ? 'locked' : 'available'}`;
+            card.innerHTML = `
+                <span class="status-badge ${isLocked ? 'status-locked' : 'status-ready'}">
+                    ${isLocked ? '🔒 Locked' : '✓ Ready'}
+                </span>
+                <h3 class="font-display text-xl mt-4">${test.title}</h3>
+                <p class="text-xs text-gray-500 mt-2">${isLocked ? 'Waiting for Admin to upload questions.' : '100 Questions Mixed Content'}</p>
+                ${!isLocked ? `<button onclick="prepareExam('${key}')" class="mt-6 bg-black text-white px-4 py-2 rounded w-full text-sm">Start Test</button>` : ''}
+            `;
+            container.appendChild(card);
+        });
+    }
+
+    // --- NAVIGATION ---
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + id).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    // --- ADMIN LOGIC ---
+    function checkAdmin() {
+        if (document.getElementById('admin-pass').value === 'admin123') {
+            showScreen('admin');
+        } else {
+            alert("Wrong Password");
+        }
+    }
+
+    function processUpload() {
+        const target = document.getElementById('upload-target').value;
+        const input = document.getElementById('json-input').value;
+        
+        try {
+            const data = JSON.parse(input);
+            db[target].questions = data;
+            localStorage.setItem('atp_db', JSON.stringify(db));
+            alert("Test successfully uploaded and unlocked!");
+            renderLibrary();
+            showScreen('selector');
+        } catch(e) {
+            alert("Error: Invalid JSON format. Make sure your brackets match.");
+        }
+    }
+
+    // --- EXAM LOGIC ---
+    function prepareExam(key) {
+        session.activeTest = key;
+        document.getElementById('active-test-title').innerText = db[key].title;
+        showScreen('start');
+    }
+
+    function beginExam() {
+        session.studentName = document.getElementById('student-name').value;
+        if (!session.studentName) return alert("Please enter your name");
+        
+        renderQuestions();
+        showScreen('exam');
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+        const questions = db[session.activeTest].questions;
+
+        questions.forEach((q, idx) => {
+            const qEl = document.createElement('div');
+            qEl.className = 'question-card';
+            qEl.innerHTML = `
+                <div class="p-4 bg-gray-50 font-bold border-b">${idx + 1}. ${q.text}</div>
+                <div class="options" id="q-${idx}">
+                    ${q.options.map((opt, i) => `
+                        <button onclick="handleSelect(${idx}, '${['A','B','C','D'][i]}')" class="option-btn" id="q-${idx}-${['A','B','C','D'][i]}">
+                            <span class="mr-2 font-mono text-xs border px-2 py-1 rounded">${['A','B','C','D'][i]}</span> ${opt}
+                        </button>
+                    `).join('')}
+                </div>
+            `;
+            container.appendChild(qEl);
+        });
+    }
+
+    function handleSelect(qIdx, letter) {
+        session.answers[qIdx] = letter;
+        // Visual update
+        document.querySelectorAll(`#q-${qIdx} .option-btn`).forEach(b => b.classList.remove('selected'));
+        document.getElementById(`q-${qIdx}-${letter}`).classList.add('selected');
+    }
+
+    function submitExam() {
+        const questions = db[session.activeTest].questions;
+        let correctCount = 0;
+        const reviewContainer = document.getElementById('review-container');
+        reviewContainer.innerHTML = '';
+
+        questions.forEach((q, idx) => {
+            const userAns = session.answers[idx];
+            const isCorrect = userAns === q.answer;
+            if (isCorrect) correctCount++;
+
+            const rev = document.createElement('div');
+            rev.className = `mb-6 border-b pb-4 ${isCorrect ? 'opacity-50' : ''}`;
+            rev.innerHTML = `
+                <p class="font-bold">${idx + 1}. ${q.text} ${isCorrect ? '✅' : '❌'}</p>
+                <p class="text-sm">Your answer: ${userAns || 'None'}</p>
+                ${!isCorrect ? `<div class="correction"><strong>Explanation:</strong> ${q.explanation}</div>` : ''}
+            `;
+            reviewContainer.appendChild(rev);
+        });
+
+        document.getElementById('final-score').innerText = `${correctCount}/${questions.length}`;
+        const pct = (correctCount / questions.length) * 100;
+        document.getElementById('final-grade').innerText = pct >= 60 ? "Status: Passed" : "Status: Needs Review";
+        
+        showScreen('results');
+        
+        // Optional: Trigger EmailJS here if configured
+    }
+
+    init();
+</script>
+</body>
+</html>
