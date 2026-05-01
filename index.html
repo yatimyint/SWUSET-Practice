@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Practice Portal | Assessment System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root { --ink: #1a1a2e; --paper: #faf8f4; --accent: #c8963e; --rule: #e0d9cf; }
+        body { font-family: 'Source Serif 4', serif; background: var(--paper); color: var(--ink); margin: 0; }
+        .font-display { font-family: 'Playfair Display', serif; }
+        .test-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 24px; }
+        .test-card { background: white; border: 1px solid var(--rule); padding: 24px; border-radius: 8px; transition: all 0.3s; }
+        .test-card.locked { opacity: 0.6; filter: grayscale(1); }
+        .test-card.available:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); border-color: var(--accent); }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        .option-btn { width: 100%; text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--rule); transition: 0.2s; cursor: pointer; }
+        .option-btn:hover { background: #fdfaf3; }
+        .option-btn.selected { background: var(--accent); color: white; }
+        .correction { background: #fdf3e0; border-left: 4px solid var(--accent); padding: 15px; margin: 10px 0; font-size: 0.9rem; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--rule); }
+        th { background: #f8f9fa; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em; }
+    </style>
+</head>
+<body>
+
+<div id="app" class="max-w-5xl mx-auto px-6 py-10">
+    <!-- HEADER -->
+    <header class="flex justify-between items-center pb-6 mb-10 border-b border-[#e0d9cf]">
+        <div>
+            <h1 class="font-display text-3xl">Practice Library</h1>
+            <p class="text-sm text-gray-500 uppercase tracking-widest">Select a test to begin</p>
+        </div>
+        <button onclick="showScreen('admin-login')" class="text-xs text-gray-400 hover:text-black">Admin Settings</button>
+    </header>
+
+    <!-- SCREEN: SELECTOR -->
+    <div id="screen-selector" class="screen active">
+        <div class="test-grid" id="library-container"></div>
+    </div>
+
+    <!-- SCREEN: ADMIN LOGIN -->
+    <div id="screen-admin-login" class="screen py-20 text-center">
+        <div class="max-w-xs mx-auto border p-10 bg-white rounded shadow-sm">
+            <h2 class="font-display text-2xl mb-6">Admin Access</h2>
+            <input type="password" id="admin-pass" placeholder="Password" class="border w-full p-2 mb-4 text-center">
+            <button onclick="checkAdmin()" class="bg-black text-white w-full p-2 rounded mb-4">Login</button>
+            <button onclick="showScreen('selector')" class="text-sm text-gray-500 hover:underline">← Return to Library</button>
+        </div>
+    </div>
+
+    <!-- SCREEN: START EXAM -->
+    <div id="screen-start" class="screen text-center py-20">
+        <h2 class="font-display text-4xl mb-4" id="active-test-title"></h2>
+        <input type="text" id="student-name" placeholder="Enter Your Name" class="border p-4 w-80 rounded mb-4 block mx-auto text-center">
+        <button onclick="beginExam()" class="bg-[#1a1a2e] text-[#e8b96a] px-10 py-4 rounded font-bold">Start Test</button>
+    </div>
+
+    <!-- SCREEN: EXAM -->
+    <div id="screen-exam" class="screen">
+        <div id="questions-container" class="max-w-2xl mx-auto"></div>
+        <button onclick="submitExam()" class="w-full bg-[#1a1a2e] text-white p-5 rounded font-bold mt-10">Submit Answers</button>
+    </div>
+
+    <!-- SCREEN: RESULTS -->
+    <div id="screen-results" class="screen max-w-2xl mx-auto">
+        <div class="text-center mb-10">
+            <h2 class="font-display text-5xl mb-2" id="final-score"></h2>
+            <p class="text-xl text-gray-600" id="final-grade"></p>
+        </div>
+        <div id="review-container"></div>
+        <button onclick="location.reload()" class="w-full mt-10 border border-black p-4 rounded">Finish & Return</button>
+    </div>
+
+    <!-- SCREEN: ADMIN DASHBOARD -->
+    <div id="screen-admin" class="screen">
+        <h2 class="font-display text-3xl mb-8">Admin Dashboard</h2>
+        <div class="bg-white border p-6 rounded mb-8">
+            <h3 class="font-bold mb-4">Manual Unlock (Backup)</h3>
+            <select id="upload-target" class="border w-full p-2 mb-4">
+                <option value="test_3">Practice Test 3</option>
+            </select>
+            <textarea id="json-input" rows="5" class="w-full border p-4 font-mono text-xs mb-4" placeholder='Paste JSON array here...'></textarea>
+            <button onclick="processUpload()" class="bg-amber-600 text-white px-6 py-2 rounded">Unlock Test</button>
+        </div>
+        <div class="bg-white border p-6 rounded mb-8">
+            <h3 class="font-bold mb-4">Local Student Submissions</h3>
+            <div class="overflow-x-auto">
+                <table>
+                    <thead>
+                        <tr><th>Name</th><th>Test</th><th>Score</th><th>Date</th></tr>
+                    </thead>
+                    <tbody id="admin-results-table"></tbody>
+                </table>
+            </div>
+            <button onclick="clearAllData()" class="mt-4 text-xs text-red-500 hover:underline">Reset System</button>
+        </div>
+        <button onclick="showScreen('selector')" class="text-blue-600 hover:underline">Back to Student View</button>
+    </div>
+</div>
+
+<script>
+    // HARDCODED DATA BANKS
+    const TEST_1_DATA = [
+        { "id": 1, "text": "The manager suggested that the meeting ________ until next week.", "options": ["postpone", "be postponed", "postponed", "postpones"], "answer": "B", "explanation": "After 'suggest,' we use the subjunctive 'be' + past participle for passive voice.", "category": "Grammar" },
+        { "id": 2, "text": "It’s high time the team ________ the new project proposal.", "options": ["submit", "submitted", "will submit", "submitting"], "answer": "B", "explanation": "'It's high time' is followed by the Past Simple.", "category": "Grammar" },
+        { "id": 3, "text": "You ________ better check the data visualization in Tableau before the presentation.", "options": ["should", "would", "had", "must"], "answer": "C", "explanation": "The specific idiom for strong advice is 'had better'.", "category": "Functional Language" },
+        { "id": 4, "text": "I am looking forward to ________ the new curriculum next semester.", "options": ["implement", "implementing", "implemented", "to implement"], "answer": "B", "explanation": "'Look forward to' requires the gerund (-ing) form.", "category": "Grammar" },
+        { "id": 5, "text": "The student asked the advisor where ________ the capstone project files.", "options": ["did he put", "he had put", "had he put", "does he put"], "answer": "B", "explanation": "Reported speech uses statement word order.", "category": "Grammar" }
+       {
+    "id": 6,
+    "text": "The witness gave an ________ account of the events, confusing the jury.",
+    "options": ["explicit", "ambiguous", "lucid", "detailed"],
+    "answer": "B",
+    "explanation": "'Ambiguous' means open to more than one interpretation; not having one obvious meaning.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 7,
+    "text": "The community showed a ________ spirit by rebuilding shortly after the flood.",
+    "options": ["fragile", "resilient", "despondent", "stubborn"],
+    "answer": "B",
+    "explanation": "'Resilient' means able to withstand or recover quickly from difficult conditions.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 8,
+    "text": "The whisper was barely ________ even in the silent room.",
+    "options": ["visible", "audible", "tangible", "edible"],
+    "answer": "B",
+    "explanation": "'Audible' means able to be heard.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 9,
+    "text": "With the advent of smartphones, pagers have become ________.",
+    "options": ["trendy", "obsolete", "essential", "innovative"],
+    "answer": "B",
+    "explanation": "'Obsolete' means no longer produced or used; out of date.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 10,
+    "text": "The theory was ________ by several peer-reviewed studies.",
+    "options": ["refuted", "corroborated", "ignored", "questioned"],
+    "answer": "B",
+    "explanation": "'Corroborated' means confirmed or gave support to a statement or theory.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 11,
+    "text": "He is highly ________ in three different programming languages.",
+    "options": ["interested", "proficient", "beginner", "confused"],
+    "answer": "B",
+    "explanation": "'Proficient' means competent or skilled in doing or using something.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 12,
+    "text": "The scent of the spice was quite ________.",
+    "options": ["sweet", "weak", "pungent", "pleasant"],
+    "answer": "C",
+    "explanation": "'Pungent' describes a sharp or strong smell or taste.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 13,
+    "text": "She was ________ about moving to a new city alone.",
+    "options": ["excited", "apprehensive", "confident", "bored"],
+    "answer": "B",
+    "explanation": "'Apprehensive' means anxious or fearful that something bad will happen.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 14,
+    "text": "The stock market tends to ________ during times of political uncertainty.",
+    "options": ["stay still", "rise only", "fluctuate", "drop only"],
+    "answer": "C",
+    "explanation": "'Fluctuate' means to rise and fall irregularly in number or amount.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 15,
+    "text": "The museum features a ________ collection of ancient artifacts.",
+    "options": ["limited", "diverse", "similar", "boring"],
+    "answer": "B",
+    "explanation": "'Diverse' means showing a great deal of variety; very different.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 16,
+    "text": "The two departments worked in ________ to finish the project on time.",
+    "options": ["competition", "isolation", "collaboration", "opposition"],
+    "answer": "C",
+    "explanation": "'Collaboration' means the action of working with someone to produce or create something.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 17,
+    "text": "The clear water was so ________ that we could see the fish at the bottom.",
+    "options": ["cloudy", "deep", "transparent", "cold"],
+    "answer": "C",
+    "explanation": "'Transparent' means allowing light to pass through so that objects behind can be distinctly seen.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 18,
+    "text": "The company will ________ new safety measures starting next week.",
+    "options": ["ignore", "implement", "design", "delay"],
+    "answer": "B",
+    "explanation": "'Implement' means to put a decision, plan, or agreement into effect.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 19,
+    "text": "The charity received an ________ donation from an anonymous donor.",
+    "options": ["selfish", "altruistic", "brave", "greedy"],
+    "answer": "B",
+    "explanation": "'Altruistic' means showing a disinterested and selfless concern for the well-being of others.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 20,
+    "text": "The oil spill caused ________ damage to the local ecosystem.",
+    "options": ["minor", "catastrophic", "beautiful", "expected"],
+    "answer": "B",
+    "explanation": "'Catastrophic' means involving or causing sudden great damage or suffering.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 21,
+    "text": "The auditor will ________ the financial records for any discrepancies.",
+    "options": ["sign", "scrutinize", "discard", "copy"],
+    "answer": "B",
+    "explanation": "'Scrutinize' means to examine or inspect closely and thoroughly.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 22,
+    "text": "The drone of the engine was ________ and induced sleep.",
+    "options": ["exciting", "monotonous", "loud", "short"],
+    "answer": "B",
+    "explanation": "'Monotonous' means dull, tedious, and repetitious; lacking in variety and interest.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 23,
+    "text": "Elderly people are often more ________ to the effects of extreme heat.",
+    "options": ["safe", "vulnerable", "strong", "wealthy"],
+    "answer": "B",
+    "explanation": "'Vulnerable' means exposed to the possibility of being attacked or harmed.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 24,
+    "text": "The local government decided to ________ the funding for public schools.",
+    "options": ["reduce", "maintain", "augment", "debate"],
+    "answer": "C",
+    "explanation": "'Augment' means to make something greater by adding to it; increase.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 25,
+    "text": "The instructions were so ________ that even a child could follow them.",
+    "options": ["ambiguous", "lucid", "confusing", "vague"],
+    "answer": "B",
+    "explanation": "'Lucid' means expressed clearly; easy to understand.",
+    "category": "Vocabulary"
+  },
+  {
+    "id": 26,
+    "text": "Giving Advice: \"I'm worried about the upcoming board meeting.\"",
+    "options": ["Don't be worried.", "Have you considered preparing a briefing note beforehand?", "Meetings are easy.", "Just relax."],
+    "answer": "B",
+    "explanation": "Suggesting a specific action with 'Have you considered...?' is a polite and professional way to give advice.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 27,
+    "text": "Asking for a Favor: \"I'm stuck in traffic. ________________ starting the presentation without me?\"",
+    "options": ["Do you", "Would you mind", "Can you", "Will you"],
+    "answer": "B",
+    "explanation": "'Would you mind' followed by a gerund (-ing) is a standard polite way to ask for a favor.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 28,
+    "text": "Disagreeing Politely: \"I think we should move the deadline up by a week.\"",
+    "options": ["No, that's impossible.", "I see where you’re coming from, but I’m concerned about the quality of the final output.", "You are wrong.", "That is a bad plan."],
+    "answer": "B",
+    "explanation": "Validating the other person's view before stating a counter-concern is the standard for polite disagreement.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 29,
+    "text": "Handling an Inquiry: \"Do you know if the IT supervisor is available?\"",
+    "options": ["He is here.", "I’m not entirely sure; let me check his schedule for you.", "Ask someone else.", "He is busy."],
+    "answer": "B",
+    "explanation": "Offering to check information is a professional way to handle an inquiry when the answer isn't immediately known.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 30,
+    "text": "Expressing Certainty: \"Is the data visualization for the capstone project finished?\"",
+    "options": ["I think so.", "I’m absolutely positive; I double-checked the dashboard this morning.", "Maybe.", "It could be."],
+    "answer": "B",
+    "explanation": "Providing a reason for certainty (e.g., 'I double-checked') reinforces the professional tone.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 31,
+    "text": "Expressing Regret: \"I apologize for the delay in the system update.\"",
+    "options": ["It's okay.", "Please accept our apologies; we are working to resolve the issue as quickly as possible.", "Don't worry.", "It happens."],
+    "answer": "B",
+    "explanation": "Formal apologies in a professional context often include a statement of ongoing action to fix the problem.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 32,
+    "text": "Checking for Understanding: \"____________________?\" \"Yes, the instructions are quite lucid now.\"",
+    "options": ["Do you get it?", "Does that clarify things for you?", "Are you following me?", "What did I say?"],
+    "answer": "B",
+    "explanation": "'Does that clarify things for you?' is a professional way to check if an explanation was successful.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 33,
+    "text": "Asking for an Opinion: \"What is your take on the new sustainability curriculum?\"",
+    "options": ["I like it.", "I find the integration of UN SDGs to be very comprehensive.", "It is okay.", "I don't know."],
+    "answer": "B",
+    "explanation": "Providing a specific, professional reason for an opinion is preferred over simple 'like' or 'dislike'.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 34,
+    "text": "Offering Help: \"These spreadsheets look very complex.\"",
+    "options": ["Yes, they are.", "Would you like some assistance with the data entry?", "Be careful with them.", "I am good at Excel."],
+    "answer": "B",
+    "explanation": "Offering specific assistance ('assistance with data entry') is more professional than a general comment.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 35,
+    "text": "Responding to Thanks: \"Thank you for providing the university admissions information.\"",
+    "options": ["No problem.", "You're very welcome.", "It was my pleasure to assist.", "Both B and C."],
+    "answer": "D",
+    "explanation": "Both 'You're very welcome' and 'It was my pleasure' are standard formal responses to thanks.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 36,
+    "text": "Interrupting Formally: \"________________, but could I just add a point about the budget?\"",
+    "options": ["Excuse me", "If I could just interject for a moment", "Listen to me", "Hey!"],
+    "answer": "B",
+    "explanation": "'If I could just interject...' is a polite way to enter a conversation in a meeting.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 37,
+    "text": "Giving an Excuse: \"Why was the Campus Connect platform offline yesterday?\"",
+    "options": ["It was offline.", "I apologize; we encountered an unexpected server issue during the update.", "Don't ask me.", "It’s fixed now."],
+    "answer": "B",
+    "explanation": "A professional excuse should be polite and provide a brief, factual reason for the problem.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 38,
+    "text": "Accepting a Suggestion: \"Why don't we use Tableau for the next report?\"",
+    "options": ["Tableau is software.", "That sounds like an excellent suggestion!", "I don't mind.", "Maybe later."],
+    "answer": "B",
+    "explanation": "Enthusiastic but professional acceptance helps build workplace collaboration.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 39,
+    "text": "Declining an Invitation: \"Are you joining us for the staff dinner tonight?\"",
+    "options": ["I hate dinners.", "I’d love to, but unfortunately, I have a prior commitment.", "No, I'm going home.", "I can't."],
+    "answer": "B",
+    "explanation": "Declining with 'I'd love to, but...' followed by a polite reason is the standard professional social norm.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 40,
+    "text": "Warning Someone: \"The link in that email looks suspicious.\"",
+    "options": ["I see.", "Be careful; it might be a phishing attempt.", "Delete it.", "Don't click it."],
+    "answer": "B",
+    "explanation": "A warning should include the reason for the caution (e.g., 'might be a phishing attempt').",
+    "category": "Functional Language"
+  },
+  {
+    "id": 41,
+    "text": "Asking for Permission: \"________________ borrow your HDMI adapter for the presentation?\"",
+    "options": ["I will", "Would you mind if I", "Give me", "Can I have"],
+    "answer": "B",
+    "explanation": "'Would you mind if I' is a polite way to request permission to use someone else's property.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 42,
+    "text": "Expressing a Preference: \"Would you prefer a morning or an afternoon meeting?\"",
+    "options": ["I like meetings.", "An afternoon slot would be preferable for me, if that works for you.", "Mornings are bad.", "You choose."],
+    "answer": "B",
+    "explanation": "Using 'preferable' and checking the other person's availability is professional and polite.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 43,
+    "text": "Showing Sympathy: \"I'm afraid the project funding was rejected.\"",
+    "options": ["That's too bad.", "I’m very sorry to hear that; is there anything we can do to appeal the decision?", "Try again.", "Oh well."],
+    "answer": "B",
+    "explanation": "Sympathy in a professional setting is most effective when followed by an offer of constructive support.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 44,
+    "text": "Making an Introduction: \"Mark, ________________ our English Program Advisor, Pinky.\"",
+    "options": ["look at", "this is", "I want to show you", "meet"],
+    "answer": "B",
+    "explanation": "'This is [Name]' remains the standard introductory phrase in academic and formal settings.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 45,
+    "text": "Encouraging a Colleague: \"I'm not sure if the Capstone Exhibition will be a success.\"",
+    "options": ["It has to be.", "I have absolute confidence in the team's preparation!", "It's a lot of work.", "Good luck."],
+    "answer": "B",
+    "explanation": "Expressing confidence in a specific aspect (the preparation) provides meaningful encouragement.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 46,
+    "text": "Ending a Conversation: \"It was a pleasure discussing the new IT protocols with you.\"",
+    "options": ["Go now.", "Likewise; I look forward to our next update.", "Goodbye.", "Okay."],
+    "answer": "B",
+    "explanation": "Using 'Likewise' and looking forward to future contact is a standard professional sign-off.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 47,
+    "text": "Giving Advice: \"I'm having trouble organizing the student feedback data.\"",
+    "options": ["That's hard.", "You might find it helpful to use Tableau for better visualization.", "Try harder.", "Use a computer."],
+    "answer": "B",
+    "explanation": "Giving a specific, useful suggestion ('use Tableau') is the best way to advise a colleague.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 48,
+    "text": "Confirming Information: \"The start date is May 5th, isn't it?\"",
+    "options": ["Yes, that is correct.", "I think so.", "It's in May.", "No."],
+    "answer": "A",
+    "explanation": "'Yes, that is correct' is a formal and clear way to confirm information.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 49,
+    "text": "Expressing Surprise: \"We received the 'Best Innovation' award!\"",
+    "options": ["Good.", "That is fantastic news! What an incredible achievement for the team!", "Give me the award.", "I see."],
+    "answer": "B",
+    "explanation": "Professional surprise at positive news should be enthusiastic and acknowledge the team's effort.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 50,
+    "text": "Asking for Directions: \"________________ the faculty office?\"",
+    "options": ["Where is", "Could you tell me how to get to", "Can you show me the way to", "All of the above"],
+    "answer": "D",
+    "explanation": "All three phrases are standard and grammatically correct for asking directions.",
+    "category": "Functional Language"
+  },
+  {
+    "id": 51,
+    "text": "By the time the Capstone Exhibition opened, the team ________ for months.",
+    "options": ["has prepared", "had been preparing", "prepared", "is preparing"],
+    "answer": "B",
+    "explanation": "Use the Past Perfect Continuous to describe an action that was ongoing up until a specific point in the past.",
+    "category": "Grammar"
+  },
+  {
+    "id": 52,
+    "text": "Neither the IT Supervisor nor the English advisors ________ informed of the change.",
+    "options": ["is", "was", "were", "be"],
+    "answer": "C",
+    "explanation": "When using 'neither/nor' with subjects of different numbers, the verb agrees with the closer subject ('advisors' is plural).",
+    "category": "Grammar"
+  },
+  {
+    "id": 53,
+    "text": "If I ________ the Business Development Associate role, I would start on May 5th.",
+    "options": ["am offered", "was offered", "were offered", "had been offered"],
+    "answer": "C",
+    "explanation": "In second conditional hypotheticals, 'were' is used for all subjects in the 'if' clause.",
+    "category": "Grammar"
+  },
+  {
+    "id": 54,
+    "text": "The student committee ________ working on the SDG curriculum for weeks now.",
+    "options": ["is", "has been", "was", "are"],
+    "answer": "B",
+    "explanation": "Use the Present Perfect Continuous for actions that started in the past and continue to the present moment.",
+    "category": "Grammar"
+  },
+  {
+    "id": 55,
+    "text": "Hardly ________ the presentation when the power went out.",
+    "options": ["I had started", "had I started", "I have started", "did I started"],
+    "answer": "B",
+    "explanation": "Sentences starting with negative adverbs like 'hardly' require inversion (Had + Subject + Verb).",
+    "category": "Grammar"
+  },
+  {
+    "id": 56,
+    "text": "The educator ________ Capstone Project was a success is very proud.",
+    "options": ["who", "whom", "whose", "that"],
+    "answer": "C",
+    "explanation": "'Whose' is the possessive relative pronoun indicating ownership or relationship.",
+    "category": "Grammar"
+  },
+  {
+    "id": 57,
+    "text": "I am not yet accustomed to ________ in a 100% digital environment.",
+    "options": ["work", "working", "worked", "be working"],
+    "answer": "B",
+    "explanation": "'Be accustomed to' is a phrase where 'to' is a preposition, followed by a gerund (-ing).",
+    "category": "Grammar"
+  },
+  {
+    "id": 58,
+    "text": "The more you use Tableau, ________ you will understand data visualization.",
+    "options": ["the best", "better", "the better", "more better"],
+    "answer": "C",
+    "explanation": "This follows the double comparative structure: 'The [comparative]..., the [comparative]...'.",
+    "category": "Grammar"
+  },
+  {
+    "id": 59,
+    "text": "I wish I ________ more time to review the Campus Connect code last night.",
+    "options": ["have", "had", "had had", "would have"],
+    "answer": "C",
+    "explanation": "Wishes about the past require the Past Perfect (had + past participle).",
+    "category": "Grammar"
+  },
+  {
+    "id": 60,
+    "text": "The feedback ________ in the student surveys was overwhelmingly positive.",
+    "options": ["are", "is", "were", "was"],
+    "answer": "D",
+    "explanation": "'Feedback' is an uncountable noun and requires a singular verb.",
+    "category": "Grammar"
+  },
+  {
+    "id": 61,
+    "text": "Not only ________ the audit, but she also improved the reporting process.",
+    "options": ["she finished", "did she finish", "she has finished", "finished she"],
+    "answer": "B",
+    "explanation": "Sentences starting with 'Not only' require inversion in the first clause.",
+    "category": "Grammar"
+  },
+  {
+    "id": 62,
+    "text": "You ________ better save your Tableau dashboard before closing the app.",
+    "options": ["should", "would", "had", "must"],
+    "answer": "C",
+    "explanation": "'Had better' is the correct fixed idiom for strong advice; 'should better' is incorrect.",
+    "category": "Grammar"
+  },
+  {
+    "id": 63,
+    "text": "Despite ________ the youngest advisor, she managed the project perfectly.",
+    "options": ["she was", "being", "was", "she is"],
+    "answer": "B",
+    "explanation": "'Despite' must be followed by a noun or a gerund.",
+    "category": "Grammar"
+  },
+  {
+    "id": 64,
+    "text": "This is the school ________ the first MUN program was established.",
+    "options": ["which", "that", "where", "when"],
+    "answer": "C",
+    "explanation": "'Where' is the relative adverb used for locations.",
+    "category": "Grammar"
+  },
+  {
+    "id": 65,
+    "text": "The supervisor asked me where ________ the Capstone data.",
+    "options": ["did I store", "I had stored", "had I stored", "do I store"],
+    "answer": "B",
+    "explanation": "Reported questions follow statement word order (Subject + Verb) and do not use 'did'.",
+    "category": "Grammar"
+  },
+  {
+    "id": 66,
+    "text": "The curriculum ________ by the advisor was aligned with the SDGs.",
+    "options": ["designing", "designed", "designs", "was designed"],
+    "answer": "B",
+    "explanation": "This is a reduced relative clause using the past participle 'designed'.",
+    "category": "Grammar"
+  },
+  {
+    "id": 67,
+    "text": "Unless the software ________ crashing, we cannot finish the report.",
+    "options": ["stops", "stop", "will stop", "stopped"],
+    "answer": "A",
+    "explanation": "In conditional 'unless' clauses, use the Present Simple to refer to future possibilities.",
+    "category": "Grammar"
+  },
+  {
+    "id": 68,
+    "text": "I’d rather the team ________ focus on Project-Based Learning this year.",
+    "options": ["don't", "didn't", "not", "wouldn't"],
+    "answer": "B",
+    "explanation": "After 'I'd rather [subject]', use the Past Simple for preferences about the present/future.",
+    "category": "Grammar"
+  },
+  {
+    "id": 69,
+    "text": "It’s high time the students ________ applying their theoretical knowledge.",
+    "options": ["start", "to start", "started", "are starting"],
+    "answer": "C",
+    "explanation": "'It's high time' is a fixed structure followed by the Past Simple.",
+    "category": "Grammar"
+  },
+  {
+    "id": 70,
+    "text": "She served ________ an English Program Advisor for several years.",
+    "options": ["like", "as", "same", "similar"],
+    "answer": "B",
+    "explanation": "Use 'as' to indicate a person's actual role, job, or function.",
+    "category": "Grammar"
+  },
+  {
+    "id": 71,
+    "text": "The advisors are looking forward ________ the next Capstone Exhibition.",
+    "options": ["attend", "to attend", "to attending", "attending"],
+    "answer": "C",
+    "explanation": "'Look forward to' must be followed by a gerund (-ing).",
+    "category": "Grammar"
+  },
+  {
+    "id": 72,
+    "text": "We ________ for the school-wide launch since early February.",
+    "options": ["plan", "are planning", "have been planning", "were planning"],
+    "answer": "C",
+    "explanation": "Use the Present Perfect Continuous for actions that started in the past and are still relevant or ongoing.",
+    "category": "Grammar"
+  },
+  {
+    "id": 73,
+    "text": "I __________ the Tableau login details. Do you have them?",
+    "options": ["lose", "lost", "have lost", "am losing"],
+    "answer": "C",
+    "explanation": "The Present Perfect is used when a past action has a clear result in the present.",
+    "category": "Grammar"
+  },
+  {
+    "id": 74,
+    "text": "The admissions website __________ I created is called Campus Connect.",
+    "options": ["who", "whom", "whose", "that"],
+    "answer": "D",
+    "explanation": "'That' is the relative pronoun for non-human objects or websites.",
+    "category": "Grammar"
+  },
+  {
+    "id": 75,
+    "text": "The student was made ________ his project after failing to meet the SDGs.",
+    "options": ["revise", "to revise", "revising", "revised"],
+    "answer": "B",
+    "explanation": "The passive form of 'make' ('be made') is followed by the full 'to-infinitive'.",
+    "category": "Grammar"
+  },
+    {
+    "id": 76, "part": 4,
+    "text": "Passage A: 'The Digital Divide in Education' states that bridging the gap requires strategic leadership. What is a key requirement according to the text?",
+    "options": ["Increased funding only", "Strategic leadership", "More hardware", "Traditional teaching"],
+    "answer": "B",
+    "explanation": "The text explicitly mentions strategic leadership as a requirement for bridging the gap.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 77, "part": 4,
+    "text": "In Passage A, what is the 'gap' referring to?",
+    "options": ["A physical hole", "The divide between technology and education", "A budget deficit", "A lack of students"],
+    "answer": "B",
+    "explanation": "Contextually, the 'digital divide' refers to the gap between innovation and classroom implementation.",
+    "category": "Reading — Inference"
+  },
+  {
+    "id": 78, "part": 4,
+    "text": "Passage B: 'The SDGs in the Classroom.' Why is SDG literacy important for the next generation?",
+    "options": ["To pass exams", "To ensure sufficient education and sustainability awareness", "To save money", "To replace traditional math"],
+    "answer": "B",
+    "explanation": "Integrating SDGs ensures students are literate in sustainability and real-world challenges.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 79, "part": 4,
+    "text": "The word 'conceptualized' in Passage B most nearly means:",
+    "options": ["Copied", "Planned/Dreamed up", "Deleted", "Sold"],
+    "answer": "B",
+    "explanation": "To conceptualize is to form a concept or idea of something.",
+    "category": "Reading — Vocabulary"
+  },
+  {
+    "id": 80, "part": 4,
+    "text": "Passage C: 'Project-Based Learning (PBL).' According to the text, why is PBL vital?",
+    "options": ["It is easier than theory", "It helps students apply theory to real-world challenges", "It requires no teachers", "It is a new trend"],
+    "answer": "B",
+    "explanation": "The text highlights applying theoretical concepts to practice as the primary value of PBL.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 81, "part": 4,
+    "text": "In Passage C, what must students move 'beyond'?",
+    "options": ["Grading", "Pure theory", "Classrooms", "Innovation"],
+    "answer": "B",
+    "explanation": "The text suggests students should move beyond theory and put ideas into practice.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 82, "part": 4,
+    "text": "Passage D: 'Data Visualization.' What is the primary purpose of using tools like Tableau?",
+    "options": ["To make pretty pictures", "To transform complex datasets into actionable insights", "To replace Excel", "To track attendance"],
+    "answer": "B",
+    "explanation": "Data visualization is used to make complex data understandable and useful for decision-making.",
+    "category": "Reading — Purpose"
+  },
+  {
+    "id": 83, "part": 4,
+    "text": "The word 'actionable' in Passage D suggests the insights should be:",
+    "options": ["Ignored", "Able to be acted upon", "Stored away", "Difficult"],
+    "answer": "B",
+    "explanation": "Actionable insights provide clear information that leads directly to a decision or action.",
+    "category": "Reading — Vocabulary"
+  },
+  {
+    "id": 84, "part": 4,
+    "text": "Passage E: 'Career Transitions.' Navigating a new professional role requires:",
+    "options": ["Luck", "Adaptability and preparation", "A high salary", "Strict routine"],
+    "answer": "B",
+    "explanation": "The passage implies that preparing for a transition, like a new start date, requires adaptability.",
+    "category": "Reading — Inference"
+  },
+  {
+    "id": 85, "part": 4,
+    "text": "Which term describes an error in reasoning mentioned in the context of critical thinking?",
+    "options": ["Logical fact", "Logical fallacy", "Scientific law", "Hypothesis"],
+    "answer": "B",
+    "explanation": "A logical fallacy is specifically defined as a flaw or error in reasoning.",
+    "category": "Reading — Terminology"
+  },
+  {
+    "id": 86, "part": 4,
+    "text": "Passage F: 'Model United Nations.' What skill is NOT primarily mentioned as being trained in MUN?",
+    "options": ["Diplomacy", "Public Speaking", "Advanced Calculus", "Policy-making"],
+    "answer": "C",
+    "explanation": "MUN focuses on diplomacy and policy, not mathematics like calculus.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 87, "part": 4,
+    "text": "The word 'streamlined' in the context of the Campus Connect platform means:",
+    "options": ["Complex", "Made efficient and simple", "Waterproof", "Broken"],
+    "answer": "B",
+    "explanation": "Streamlining a process involves making it more efficient and less complicated.",
+    "category": "Reading — Vocabulary"
+  },
+  {
+    "id": 88, "part": 4,
+    "text": "Passage G: 'The Capstone Exhibition.' The exhibition serves as a:",
+    "options": ["Final assignment only", "Platform to showcase project-based results", "Marketing event", "Social gathering"],
+    "answer": "B",
+    "explanation": "Exhibitions showcase the culmination of student work and practical application.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 89, "part": 4,
+    "text": "What is the tone of a professional email regarding a job acceptance?",
+    "options": ["Casual and humorous", "Formal and deligthed", "Angry", "Indifferent"],
+    "answer": "B",
+    "explanation": "Professional acceptance emails should be formal while expressing positive sentiment.",
+    "category": "Reading — Tone"
+  },
+  {
+    "id": 90, "part": 4,
+    "text": "Passage H: 'Educational Leadership.' A supervisor's role in launching a school-wide project is best described as:",
+    "options": ["Passive", "Strategic and managerial", "Purely technical", "Observational"],
+    "answer": "B",
+    "explanation": "Managing a launch involves both high-level strategy and practical management.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 91, "part": 4,
+    "text": "The term 'Centralized access' in Passage H means:",
+    "options": ["Hidden access", "All information in one location", "Access for teachers only", "Remote access"],
+    "answer": "B",
+    "explanation": "Centralization refers to bringing resources together into a single hub or location.",
+    "category": "Reading — Vocabulary"
+  },
+  {
+    "id": 92, "part": 4,
+    "text": "Passage I: 'Mentorship.' Gratitude toward a professor often highlights:",
+    "options": ["Financial gains", "Opportunities and guidance provided", "Classroom furniture", "The difficulty of exams"],
+    "answer": "B",
+    "explanation": "Mentorship is defined by the opportunities and professional guidance the mentor offers.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 93, "part": 4,
+    "text": "In critical thinking, an 'objective' analysis is based on:",
+    "options": ["Personal feelings", "Facts and evidence", "Popularity", "Tradition"],
+    "answer": "B",
+    "explanation": "Objectivity requires setting aside bias and focusing on verifiable evidence.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 94, "part": 4,
+    "text": "Passage J: 'Sustainable Materials.' Green buildings use renewable energy to:",
+    "options": ["Increase costs", "Reduce environmental impact", "Look modern", "Compete with neighbors"],
+    "answer": "B",
+    "explanation": "The primary goal of green architecture is sustainability and footprint reduction.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 95, "part": 4,
+    "text": "A 'carbon footprint' measures:",
+    "options": ["The size of a shoe", "Total greenhouse gas emissions", "The weight of a building", "Electricity speed"],
+    "answer": "B",
+    "explanation": "Carbon footprint is a standard measure of environmental impact through emissions.",
+    "category": "Reading — Terminology"
+  },
+  {
+    "id": 96, "part": 4,
+    "text": "Passage K: 'Lifelong Learning.' In a transforming economy, the most important skill is:",
+    "options": ["Static knowledge", "Adaptability", "Memory", "Speed typing"],
+    "answer": "B",
+    "explanation": "Economic transitions require the ability to learn new skills and adapt to change.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 97, "part": 4,
+    "text": "What does 'acidification' of the ocean lead to?",
+    "options": ["More fish", "Coral bleaching", "Warmer air", "Clearer water"],
+    "answer": "B",
+    "explanation": "Chemical changes in the water (acidification) are a direct cause of reef damage.",
+    "category": "Reading — Detail"
+  },
+  {
+    "id": 89, "part": 4,
+    "text": "The 'loop' in habit formation refers to:",
+    "options": ["A physical circle", "A recurring neurological pattern", "A mistake", "A rope"],
+    "answer": "B",
+    "explanation": "The neurological loop describes the repeated sequence of cue, routine, and reward.",
+    "category": "Reading — Terminology"
+  },
+  {
+    "id": 99, "part": 4,
+    "text": "In a formal setting, what is 'interjecting'?",
+    "options": ["Leaving the room", "Interrupting politely to add a point", "Shouting", "Sleeping"],
+    "answer": "B",
+    "explanation": "Interjecting is the formal term for joining a conversation or debate respectfully.",
+    "category": "Reading — Vocabulary"
+  },
+  {
+    "id": 100, "part": 4,
+    "text": "The phrase 'bridge the gap' is an idiom meaning:",
+    "options": ["Build a physical bridge", "Connect two different things/ideas", "Cross a river", "Close a door"],
+    "answer": "B",
+    "explanation": "To bridge a gap is to connect or reconcile two disparate things, like tech and education.",
+    "category": "Reading — Idiom"
+  }
+
+    ];
+
+    const TEST_2_DATA = [
+        { "id": 1, "text": "The CEO decided to ________ the merger until the financial audit was complete.", "options": ["hasten", "defer", "cancel", "announce"], "answer": "B", "explanation": "'Defer' means to put off; postpone.", "category": "Vocabulary" },
+        { "id": 2, "text": "The detective's ________ examination of the crime scene revealed hidden evidence.", "options": ["hasty", "meticulous", "careless", "superficial"], "answer": "B", "explanation": "'Meticulous' means showing great attention to detail.", "category": "Vocabulary" },
+        { "id": 51, "text": "The supervisor asked the intern where ________ the latest performance report.", "options": ["did she file", "she had filed", "had she filed", "does she file"], "answer": "B", "explanation": "Reported speech follows statement order.", "category": "Grammar" },
+        { "id": 52, "text": "You ________ better update your resume before applying for the new role.", "options": ["should", "would", "had", "must"], "answer": "C", "explanation": "'Had better' is the correct idiom.", "category": "Grammar" }
+        // ... (remaining questions from Practice Test 2)
+    ];
+
+    let db = {
+        test_1: { title: "Practice Test 1", questions: TEST_1_DATA },
+        test_2: { title: "Practice Test 2", questions: null },
+        test_3: { title: "Practice Test 3", questions: null }
+    };
+
+    let session = { activeTest: null, studentName: "", answers: {} };
+
+    function init() {
+        const saved = localStorage.getItem('atp_db');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            // Only override Test 3 if it was manually uploaded
+            if(parsed.test_3 && parsed.test_3.questions) db.test_3.questions = parsed.test_3.questions;
+        }
+        renderLibrary();
+    }
+
+    function renderLibrary() {
+        const container = document.getElementById('library-container');
+        container.innerHTML = '';
+        Object.keys(db).forEach(key => {
+            const isLocked = db[key].questions === null;
+            container.innerHTML += `
+                <div class="test-card ${isLocked ? 'locked' : 'available'}">
+                    <h3 class="font-display text-xl">${db[key].title}</h3>
+                    <p class="text-xs text-gray-500 mt-1">${isLocked ? '🔒 Content Pending' : '✓ Questions Ready'}</p>
+                    ${!isLocked ? `<button onclick="prepareExam('${key}')" class="mt-6 bg-black text-white px-4 py-2 rounded w-full text-sm">Open Test</button>` : ''}
+                </div>`;
+        });
+    }
+
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById('screen-' + id).classList.add('active');
+        if(id === 'admin') renderAdminResults();
+        window.scrollTo(0,0);
+    }
+
+    function checkAdmin() {
+        if (document.getElementById('admin-pass').value === 'admin123') showScreen('admin');
+        else alert("Incorrect Password");
+    }
+
+    function processUpload() {
+        const target = document.getElementById('upload-target').value;
+        try {
+            db[target].questions = JSON.parse(document.getElementById('json-input').value);
+            localStorage.setItem('atp_db', JSON.stringify(db));
+            alert("Test content updated!");
+            renderLibrary();
+            showScreen('selector');
+        } catch(e) { alert("Format Error."); }
+    }
+
+    function renderAdminResults() {
+        const results = JSON.parse(localStorage.getItem('atp_results') || '[]');
+        const tbody = document.getElementById('admin-results-table');
+        tbody.innerHTML = results.length ? '' : '<tr><td colspan="4" class="text-center text-gray-400 py-4">No local results.</td></tr>';
+        results.reverse().forEach(res => {
+            tbody.innerHTML += `<tr><td class="font-bold">${res.name}</td><td>${res.testTitle}</td><td>${res.score}</td><td class="text-xs text-gray-400">${res.date}</td></tr>`;
+        });
+    }
+
+    function prepareExam(key) {
+        session.activeTest = key;
+        document.getElementById('active-test-title').innerText = db[key].title;
+        showScreen('start');
+    }
+
+    function beginExam() {
+        session.studentName = document.getElementById('student-name').value;
+        if (!session.studentName) return alert("Please enter your name");
+        renderQuestions();
+        showScreen('exam');
+    }
+
+    function renderQuestions() {
+        const container = document.getElementById('questions-container');
+        container.innerHTML = '';
+        db[session.activeTest].questions.forEach((q, idx) => {
+            container.innerHTML += `
+                <div class="mb-10">
+                    <div class="p-4 bg-gray-50 font-bold border-b mb-4">${idx + 1}. ${q.text}</div>
+                    <div id="q-${idx}">
+                        ${q.options.map((opt, i) => `
+                            <button onclick="handleSelect(${idx}, '${['A','B','C','D'][i]}')" class="option-btn" id="q-${idx}-${['A','B','C','D'][i]}">
+                                <span class="mr-3 text-xs border px-2 py-1 rounded">${['A','B','C','D'][i]}</span> ${opt}
+                            </button>`).join('')}
+                    </div>
+                </div>`;
+        });
+    }
+
+    function handleSelect(qIdx, letter) {
+        session.answers[qIdx] = letter;
+        document.querySelectorAll(`#q-${qIdx} .option-btn`).forEach(b => b.classList.remove('selected'));
+        document.getElementById(`q-${qIdx}-${letter}`).classList.add('selected');
+    }
+
+    function submitExam() {
+        const questions = db[session.activeTest].questions;
+        let correctCount = 0;
+        const review = document.getElementById('review-container');
+        review.innerHTML = '';
+        
+        questions.forEach((q, idx) => {
+            const isCorrect = session.answers[idx] === q.answer;
+            if (isCorrect) correctCount++;
+            review.innerHTML += `
+                <div class="mb-6 border-b pb-4 ${isCorrect ? 'opacity-40' : ''}">
+                    <p class="font-bold">${idx + 1}. ${q.text} ${isCorrect ? '✅' : '❌'}</p>
+                    <p class="text-sm">Response: ${session.answers[idx] || 'No Answer'}</p>
+                    ${!isCorrect ? `<div class="correction"><strong>Rule:</strong> ${q.explanation}</div>` : ''}
+                </div>`;
+        });
+
+        const scoreString = `${correctCount}/${questions.length}`;
+        document.getElementById('final-score').innerText = scoreString;
+        document.getElementById('final-grade').innerText = (correctCount/questions.length >= 0.7) ? "Status: Passed" : "Status: Further Study Advised";
+
+        // Save Result
+        const results = JSON.parse(localStorage.getItem('atp_results') || '[]');
+        results.push({ name: session.studentName, testTitle: db[session.activeTest].title, score: scoreString, date: new Date().toLocaleString() });
+        localStorage.setItem('atp_results', JSON.stringify(results));
+
+        showScreen('results');
+    }
+
+    function clearAllData() {
+        if(confirm("Reset all data?")) { localStorage.clear(); location.reload(); }
+    }
+
+    init();
+</script>
+</body>
+</html>
