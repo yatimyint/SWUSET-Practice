@@ -3,12 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWU-SET Practice Portal</title>
-    
+    <title>SWU-SET Portal | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
-    
     <script>
         tailwind.config = {
             theme: {
@@ -19,254 +16,37 @@
             }
         }
     </script>
-
-    <style>
-        body { background-color: #faf8f4; color: #1a1a2e; font-family: 'Source Serif 4', serif; }
-        .btn-option.selected { background-color: #1a1a2e; color: white; border-color: #1a1a2e; }
-        .correct-bg { background-color: #dcfce7; border: 1px solid #166534; }
-        .incorrect-bg { background-color: #fee2e2; border: 1px solid #991b1b; }
-        .tab-card:hover { transform: translateY(-5px); box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
-    </style>
 </head>
-<body class="min-h-screen pb-20">
+<body class="bg-paper font-body min-h-screen">
 
-    <nav class="bg-ink text-paper py-6 px-4 shadow-lg mb-8">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <h1 class="font-header text-2xl tracking-tight cursor-pointer" onclick="location.reload()">SWU-SET PORTAL</h1>
-            <div id="student-tag" class="hidden bg-accent/20 px-4 py-1 rounded-full text-xs font-bold text-accent border border-accent/30"></div>
+    <nav class="bg-ink text-paper py-6 px-4 shadow-lg mb-12">
+        <div class="max-w-5xl mx-auto">
+            <h1 class="font-header text-2xl tracking-tight">SWU-SET PORTAL</h1>
         </div>
     </nav>
 
     <main class="max-w-4xl mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="font-header text-5xl mb-4 text-ink">Academic Assessment Hub</h2>
+            <p class="text-gray-500 text-lg">Select a module to begin your practice session.</p>
+        </div>
 
-        <section id="index-view" class="py-10 animate-in fade-in duration-700">
-            <div class="text-center mb-16">
-                <h2 class="font-header text-5xl mb-4">Academic Assessment Hub</h2>
-                <p class="text-gray-500 text-lg">Select a module to begin your practice session.</p>
-            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <a href="practice.html?mode=full" class="block bg-white border-2 border-ink p-10 rounded-3xl hover:shadow-2xl hover:-translate-y-2 transition-all group">
+                <div class="w-12 h-12 bg-ink text-white rounded-full flex items-center justify-center mb-6 font-bold">01</div>
+                <h3 class="font-header text-3xl mb-3 group-hover:text-accent transition-colors">Full Practice Test</h3>
+                <p class="text-gray-500 mb-8">100 questions simulating the complete standardized exam environment.</p>
+                <div class="font-bold text-ink uppercase tracking-widest text-sm">Open Test →</div>
+            </a>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
-                <div onclick="goToOnboarding('full')" class="tab-card cursor-pointer bg-white border-2 border-ink p-10 rounded-3xl transition-all group">
-                    <div class="w-12 h-12 bg-ink text-white rounded-full flex items-center justify-center mb-6 font-bold">01</div>
-                    <h3 class="font-header text-3xl mb-3 group-hover:text-accent transition-colors">Full Practice Test</h3>
-                    <p class="text-gray-500 mb-8">100 questions simulating the complete standardized exam environment.</p>
-                    <div class="flex items-center font-bold text-ink uppercase tracking-widest text-sm">
-                        Start Module <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
-                    </div>
-                </div>
-
-                <div onclick="goToOnboarding('grammar')" class="tab-card cursor-pointer bg-white border-2 border-accent p-10 rounded-3xl transition-all group">
-                    <div class="w-12 h-12 bg-accent text-white rounded-full flex items-center justify-center mb-6 font-bold">02</div>
-                    <h3 class="font-header text-3xl mb-3 group-hover:text-ink transition-colors">Grammar Drills</h3>
-                    <p class="text-gray-500 mb-8">Targeted practice for the Perfect Tense, Wish clauses, and Used to/Would.</p>
-                    <div class="flex items-center font-bold text-accent uppercase tracking-widest text-sm">
-                        Start Module <span class="ml-2 group-hover:translate-x-2 transition-transform">→</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section id="onboarding-view" class="hidden max-w-md mx-auto py-20 text-center">
-            <h2 class="font-header text-4xl mb-6">Enter Candidate Details</h2>
-            <input type="text" id="name-field" placeholder="Full Name" 
-                   class="w-full p-4 border-2 border-gray-200 rounded-2xl mb-6 outline-none focus:border-accent text-lg">
-            <button id="entry-btn" disabled onclick="startTest()"
-                    class="w-full py-4 bg-gray-300 text-gray-500 rounded-2xl font-bold uppercase transition-all cursor-not-allowed">
-                Unlock Questions
-            </button>
-            <button onclick="location.reload()" class="mt-6 text-sm underline opacity-50">Back to Library</button>
-        </section>
-
-        <section id="test-view" class="hidden">
-            <div class="sticky top-4 bg-white/80 backdrop-blur-md shadow-sm border border-gray-100 p-6 rounded-3xl mb-12 flex justify-between items-center z-50">
-                <div>
-                    <h3 id="display-test-name" class="font-header text-2xl text-ink"></h3>
-                    <p class="text-xs text-accent font-bold uppercase tracking-tighter" id="display-student-name"></p>
-                </div>
-                <button onclick="processSubmission()" class="bg-accent text-white px-8 py-3 rounded-2xl font-bold hover:brightness-90 shadow-lg shadow-accent/20 transition-all">
-                    SUBMIT ASSIGNMENT
-                </button>
-            </div>
-            <div id="questions-mount" class="space-y-12"></div>
-        </section>
-
-        <section id="results-view" class="hidden animate-in zoom-in-95 duration-500">
-            <div class="bg-ink text-paper p-12 rounded-[2rem] text-center shadow-2xl mb-12">
-                <h2 class="font-header text-7xl mb-2" id="score-text">0/100</h2>
-                <p class="text-accent font-bold tracking-widest uppercase mb-8">Performance Summary</p>
-                <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                    <button onclick="downloadPDF()" class="bg-accent text-white px-8 py-3 rounded-full font-bold hover:bg-white hover:text-ink transition-all">
-                        Download Mistake Log
-                    </button>
-                    <button onclick="location.reload()" class="bg-white/10 text-paper px-8 py-3 rounded-full font-bold hover:bg-white/20 transition-all">
-                        Back to Dashboard
-                    </button>
-                </div>
-            </div>
-
-            <h3 class="font-header text-3xl mb-8 border-b-2 border-accent inline-block">Review Section</h3>
-            <div id="review-mount" class="space-y-6"></div>
-        </section>
-
+            <a href="practice.html?mode=grammar" class="block bg-white border-2 border-accent p-10 rounded-3xl hover:shadow-2xl hover:-translate-y-2 transition-all group">
+                <div class="w-12 h-12 bg-accent text-white rounded-full flex items-center justify-center mb-6 font-bold">02</div>
+                <h3 class="font-header text-3xl mb-3 group-hover:text-ink transition-colors">Grammar Drills</h3>
+                <p class="text-gray-500 mb-8">Targeted practice for the Perfect Tense, Wish clauses, and Used to/Would.</p>
+                <div class="font-bold text-accent uppercase tracking-widest text-sm">Open Practice →</div>
+            </a>
+        </div>
     </main>
 
-    <script>
-        // CONFIG
-        const FORMSPREE_KEY = "mbdwjqnj";
-        
-        // TEST DATA (100 Questions)
-        const QUESTIONS_MASTER = [
-            { id: 1, cat: "Grammar", q: "The manager suggested that the meeting ________ until next week.", options: ["postpone", "be postponed", "postponed", "postpones"], ans: "B", exp: "Use the subjunctive 'be' + V3 after 'suggest' for passive voice." },
-            { id: 2, cat: "Grammar", q: "By the time the professor arrived, the students ________ the classroom.", options: ["have left", "had left", "were leaving", "left"], ans: "B", exp: "Past Perfect is used for an action completed before another past action." },
-            { id: 3, cat: "Vocabulary", q: "The scent of the spice was quite ________.", options: ["sweet", "weak", "pungent", "pleasant"], ans: "C", exp: "'Pungent' describes a sharp or strong smell." },
-            // ... the logic will handle all 100 questions here
-        ];
-
-        let sessionData = [];
-        let studentName = "";
-        let selectedAnswers = {};
-        let activeModule = "";
-
-        // Navigation
-        function goToOnboarding(type) {
-            activeModule = type;
-            document.getElementById('index-view').classList.add('hidden');
-            document.getElementById('onboarding-view').classList.remove('hidden');
-        }
-
-        const input = document.getElementById('name-field');
-        input.addEventListener('input', (e) => {
-            studentName = e.target.value.trim();
-            const btn = document.getElementById('entry-btn');
-            if(studentName.length > 2) {
-                btn.disabled = false;
-                btn.classList.replace('bg-gray-300', 'bg-ink');
-                btn.classList.replace('text-gray-500', 'text-white');
-                btn.classList.remove('cursor-not-allowed');
-                btn.innerText = "Start Practice";
-            }
-        });
-
-        function startTest() {
-            // Select data based on module
-            sessionData = activeModule === 'full' ? QUESTIONS_MASTER : QUESTIONS_MASTER.filter(q => q.id < 11); 
-            
-            document.getElementById('onboarding-view').classList.add('hidden');
-            document.getElementById('test-view').classList.remove('hidden');
-            document.getElementById('display-test-name').innerText = activeModule === 'full' ? "Full Practice Test 1" : "Grammar Drills";
-            document.getElementById('display-student-name').innerText = studentName;
-            document.getElementById('student-tag').innerText = studentName;
-            document.getElementById('student-tag').classList.remove('hidden');
-            
-            renderExam();
-            window.scrollTo(0,0);
-        }
-
-        function renderExam() {
-            const mount = document.getElementById('questions-mount');
-            mount.innerHTML = sessionData.map(q => `
-                <div class="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-sm">
-                    <span class="text-[10px] font-bold tracking-[0.2em] text-accent uppercase mb-4 block">${q.cat}</span>
-                    <p class="text-xl mb-8 leading-relaxed">${q.q}</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${q.options.map((opt, i) => {
-                            const L = String.fromCharCode(65+i);
-                            return `
-                                <button onclick="handlePick(${q.id}, '${L}')" id="q${q.id}-${L}"
-                                        class="btn-option text-left p-5 border-2 border-gray-50 rounded-2xl hover:border-accent transition-all flex items-center">
-                                    <span class="w-8 h-8 flex items-center justify-center rounded-full bg-paper mr-4 font-bold text-xs border border-gray-200">${L}</span>
-                                    ${opt}
-                                </button>`;
-                        }).join('')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function handlePick(qid, letter) {
-            ['A','B','C','D'].forEach(l => {
-                const el = document.getElementById(`q${qid}-${l}`);
-                if(el) el.classList.remove('selected');
-            });
-            document.getElementById(`q${qid}-${letter}`).classList.add('selected');
-            selectedAnswers[qid] = letter;
-        }
-
-        async function processSubmission() {
-            if(!confirm("Are you ready to submit?")) return;
-
-            let finalScore = 0;
-            const mistakes = [];
-
-            sessionData.forEach(q => {
-                const userChoice = selectedAnswers[q.id] || "None";
-                if(userChoice === q.ans) {
-                    finalScore++;
-                } else {
-                    mistakes.push({ id: q.id, text: q.q, user: userChoice, correct: q.ans });
-                }
-            });
-
-            document.getElementById('test-view').classList.add('hidden');
-            document.getElementById('results-view').classList.remove('hidden');
-            document.getElementById('score-text').innerText = `${finalScore} / ${sessionData.length}`;
-            
-            renderMistakeReview();
-            await syncToGoogleSheets(finalScore, mistakes);
-            window.scrollTo(0,0);
-        }
-
-        function renderMistakeReview() {
-            const mount = document.getElementById('review-mount');
-            mount.innerHTML = sessionData.map(q => {
-                const isCorrect = selectedAnswers[q.id] === q.ans;
-                return `
-                    <div class="p-8 rounded-3xl ${isCorrect ? 'correct-bg' : 'incorrect-bg'} mb-4">
-                        <p class="font-bold mb-3 text-lg">${isCorrect ? '✓' : '✗'} Question ${q.id}: ${q.q}</p>
-                        <p class="text-sm opacity-80">Chosen: ${selectedAnswers[q.id] || 'N/A'} | Correct: ${q.ans}</p>
-                        <div class="mt-4 p-4 bg-white/40 rounded-xl italic text-xs leading-relaxed">
-                            <strong>Explanation:</strong> ${q.exp}
-                        </div>
-                    </div>`;
-            }).join('');
-        }
-
-        async function syncToGoogleSheets(score, log) {
-            const mistakestr = log.map(m => `Q${m.id}: ${m.user}(key:${m.correct})`).join(' | ');
-            try {
-                await fetch(`https://formspree.io/f/${FORMSPREE_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        student: studentName,
-                        module: activeModule,
-                        score: `${score}/${sessionData.length}`,
-                        mistakeLog: mistakestr
-                    })
-                });
-            } catch (e) { console.error("Sync Failed"); }
-        }
-
-        function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.setFont("helvetica", "bold");
-            doc.text(`SWU-SET Mistake Log: ${studentName}`, 20, 20);
-            doc.setFontSize(10);
-            doc.text(`Final Result: ${document.getElementById('score-text').innerText}`, 20, 30);
-            
-            let y = 50;
-            sessionData.forEach(q => {
-                if(selectedAnswers[q.id] !== q.ans) {
-                    if(y > 270) { doc.addPage(); y = 20; }
-                    doc.text(`Q${q.id}: ${q.q.substring(0, 80)}...`, 20, y);
-                    y += 5;
-                    doc.text(`Incorrect: ${selectedAnswers[q.id] || 'N/A'} | Solution: ${q.ans}`, 25, y);
-                    y += 10;
-                }
-            });
-            doc.save(`${studentName}_MistakeLog.pdf`);
-        }
-    </script>
 </body>
 </html>
