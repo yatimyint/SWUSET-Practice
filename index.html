@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SWU-SET | Practice Session</title>
+    <title>SWU-SET Portal | Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Source+Serif+4:wght@400;600&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
@@ -17,251 +16,28 @@
             }
         }
     </script>
-    <style>
-        .correct-bg { background-color: #dcfce7; border: 1px solid #166534; }
-        .incorrect-bg { background-color: #fee2e2; border: 1px solid #991b1b; }
-    </style>
 </head>
-<body class="bg-paper font-body min-h-screen pb-20">
-
-    <nav class="bg-ink text-paper py-4 px-4 sticky top-0 z-50 shadow-md">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
-            <a href="index.html" class="font-header text-xl">← Back to Hub</a>
-            <button id="submit-btn" onclick="submitExam()" class="hidden bg-accent text-white px-6 py-2 rounded-xl font-bold">SUBMIT EXAM</button>
-        </div>
+<body class="bg-paper font-body min-h-screen">
+    <nav class="bg-ink text-paper py-6 px-4 shadow-lg mb-12">
+        <div class="max-w-5xl mx-auto"><h1 class="font-header text-2xl tracking-tight">SWU-SET PORTAL</h1></div>
     </nav>
-
-    <main class="max-w-4xl mx-auto px-4 mt-10">
-        <div id="onboarding" class="max-w-md mx-auto text-center py-10">
-            <h2 class="font-header text-3xl mb-6">Candidate Verification</h2>
-            <input type="text" id="student-name" placeholder="Full Name" class="w-full p-4 border-2 border-gray-200 rounded-xl mb-6 outline-none focus:border-accent">
-            <button onclick="begin()" class="w-full py-4 bg-ink text-white rounded-xl font-bold uppercase">Start Assessment</button>
+    <main class="max-w-4xl mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="font-header text-5xl mb-4 text-ink">Academic Assessment Hub</h2>
+            <p class="text-gray-500 text-lg">Select a module to begin your practice session.</p>
         </div>
-
-        <div id="quiz-container" class="hidden space-y-12"></div>
-
-        <div id="results-view" class="hidden text-center py-10">
-            <div class="bg-ink text-paper p-12 rounded-[2rem] shadow-2xl mb-12">
-                <h2 class="font-header text-7xl mb-4" id="final-score">0/100</h2>
-                <button onclick="downloadPDF()" class="bg-accent text-white px-8 py-3 rounded-full font-bold">Download Mistake Log (PDF)</button>
-            </div>
-            <div id="review-mount" class="text-left space-y-6"></div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+            <a href="practice.html?mode=full" class="block bg-white border-2 border-ink p-10 rounded-3xl hover:shadow-2xl hover:-translate-y-2 transition-all group">
+                <h3 class="font-header text-3xl mb-3 group-hover:text-accent transition-colors">Full Practice Test</h3>
+                <p class="text-gray-500 mb-8">100 questions covering Grammar, Vocab, Functional Language, and Reading.</p>
+                <div class="font-bold text-ink uppercase tracking-widest text-sm">Open Test →</div>
+            </a>
+            <a href="practice.html?mode=grammar" class="block bg-white border-2 border-accent p-10 rounded-3xl hover:shadow-2xl hover:-translate-y-2 transition-all group">
+                <h3 class="font-header text-3xl mb-3 group-hover:text-ink transition-colors">Grammar Drills</h3>
+                <p class="text-gray-500 mb-8">Targeted practice for Perfect Tense, Wish clauses, and Used to/Would.</p>
+                <div class="font-bold text-accent uppercase tracking-widest text-sm">Open Practice →</div>
+            </a>
         </div>
     </main>
-
-    <script>
-        const QUESTIONS = [
-            // [1-35: Grammar & Structure]
-            { id: 1, cat: "Grammar", q: "The manager suggested that the meeting ________ until next week.", options: ["postpone", "be postponed", "postponed", "postpones"], ans: "B", exp: "Subjunctive 'be' + V3 after 'suggest'." },
-            { id: 2, cat: "Grammar", q: "By the time the professor arrived, the students ________ the classroom.", options: ["have left", "had left", "were leaving", "left"], ans: "B", exp: "Past Perfect for actions completed before another past event." },
-            { id: 3, cat: "Grammar", q: "I wish I ________ more time to review the code last night.", options: ["have", "had", "had had", "would have"], ans: "C", exp: "Past regrets require the Past Perfect (had + V3)." },
-            { id: 4, cat: "Grammar", q: "When I was a child, I ________ have long hair, but now it is short.", options: ["would", "used to", "am used to", "use to"], ans: "B", exp: "'Used to' describes past states; 'would' is only for repeated actions." },
-            { id: 5, cat: "Grammar", q: "It’s high time the team ________ the new project proposal.", options: ["submit", "submitted", "will submit", "submitting"], ans: "B", exp: "'It's high time' is followed by the Past Simple." },
-            { id: 6, cat: "Grammar", q: "I am looking forward to ________ the new curriculum next semester.", options: ["implement", "implementing", "implemented", "to implement"], ans: "B", exp: "'Look forward to' is a prepositional phrase requiring a gerund (-ing)." },
-            { id: 7, cat: "Grammar", q: "If I ________ the role, I would start on May 5th.", options: ["am offered", "was offered", "were offered", "had been offered"], ans: "C", exp: "Subjunctive 'were' is used in second conditional hypotheticals." },
-            { id: 8, cat: "Grammar", q: "Hardly ________ the presentation when the power went out.", options: ["I had started", "had I started", "I have started", "did I start"], ans: "B", exp: "Negative adverbs like 'Hardly' at the start require inversion." },
-            { id: 9, cat: "Grammar", q: "The educator ________ project was a success is very proud.", options: ["who", "whom", "whose", "that"], ans: "C", exp: "'Whose' is the possessive relative pronoun." },
-            { id: 10, cat: "Grammar", q: "Not only ________ the audit, but she also improved the process.", options: ["she finished", "did she finish", "she has finished", "finished she"], ans: "B", exp: "Inversion is required after 'Not only'." },
-            { id: 11, cat: "Grammar", q: "The feedback ________ in the surveys was overwhelmingly positive.", options: ["are", "is", "were", "was"], ans: "D", exp: "Feedback is singular." },
-            { id: 12, cat: "Grammar", q: "I’d rather the team ________ focus on PBL this year.", options: ["don't", "didn't", "not", "wouldn't"], ans: "B", exp: "Past Simple after 'I'd rather' for present preference." },
-            { id: 13, cat: "Grammar", q: "The more you use Tableau, ________ you will understand data.", options: ["the best", "better", "the better", "more better"], ans: "C", exp: "Double comparative structure." },
-            { id: 14, cat: "Grammar", q: "I __________ the login details. Do you have them?", options: ["lose", "lost", "have lost", "am losing"], ans: "C", exp: "Present Perfect for past action with present result." },
-            { id: 15, cat: "Grammar", q: "The student was made ________ his project after failing.", options: ["revise", "to revise", "revising", "revised"], ans: "B", exp: "Passive 'make' followed by to-infinitive." },
-            { id: 16, cat: "Grammar", q: "Despite ________ the youngest, she managed perfectly.", options: ["she was", "being", "was", "she is"], ans: "B", exp: "Despite + gerund." },
-            { id: 17, cat: "Grammar", q: "She served ________ an advisor for several years.", options: ["like", "as", "same", "similar"], ans: "B", exp: "'As' for actual roles/jobs." },
-            { id: 18, cat: "Grammar", q: "Unless the software ________ crashing, we cannot finish.", options: ["stops", "stop", "will stop", "stopped"], ans: "A", exp: "Present simple in 'unless' clauses." },
-            { id: 19, cat: "Grammar", q: "He wishes it ________ stop raining.", options: ["stops", "would", "had", "will"], ans: "B", exp: "Wish + would for change." },
-            { id: 20, cat: "Grammar", q: "They ________ to the beach every summer when young.", options: ["would go", "used to go", "Both A and B", "Neither"], ans: "C", exp: "Both work for past repeated actions." },
-            { id: 21, cat: "Grammar", q: "ERROR: (A) Since I (B) have started (C) my job, I (D) haven't had time.", options: ["A", "B", "C", "D"], ans: "B", exp: "Past simple after 'since'." },
-            { id: 22, cat: "Grammar", q: "ERROR: He (A) used to (B) playing (C) football, but he (D) stopped.", options: ["A", "B", "C", "D"], ans: "B", exp: "Used to + base verb." },
-            { id: 23, cat: "Grammar", q: "I wish I ________ to the cinema with them tonight.", options: ["go", "can go", "could go", "will go"], ans: "C", exp: "Wish + could for present ability." },
-            { id: 24, cat: "Grammar", q: "By next May, she ________ for the school for ten years.", options: ["works", "will work", "will have worked", "is working"], ans: "C", exp: "Future Perfect for duration." },
-            { id: 25, cat: "Grammar", q: "The students ________ their projects by the deadline yesterday.", options: ["finished", "have finished", "had finished", "finish"], ans: "C", exp: "Past Perfect for completion before a past time." },
-            { id: 26, cat: "Grammar", q: "It is essential that the data ________ checked.", options: ["is", "be", "was", "were"], ans: "B", exp: "Subjunctive after essential." },
-            { id: 27, cat: "Grammar", q: "Neither of the solutions ________ practical.", options: ["is", "are", "were", "be"], ans: "A", exp: "Neither is singular." },
-            { id: 28, cat: "Grammar", q: "The information ________ provided in the handbook.", options: ["are", "is", "were", "be"], ans: "B", exp: "Information is uncountable." },
-            { id: 29, cat: "Grammar", q: "She acts as if she ________ the owner.", options: ["is", "was", "were", "be"], ans: "C", exp: "Subjunctive 'were' for unreal states." },
-            { id: 30, cat: "Grammar", q: "Scarcely ________ when the bell rang.", options: ["I had sat", "had I sat", "I sat", "did I sat"], ans: "B", exp: "Inversion after negative adverb." },
-            { id: 31, cat: "Grammar", q: "I ________ go if I were you.", options: ["will not", "would not", "should not", "shall not"], ans: "B", exp: "2nd conditional result." },
-            { id: 32, cat: "Grammar", q: "The team ________ divided on the issue.", options: ["is", "are", "was", "were"], ans: "B", exp: "Plural verb for divided collective nouns." },
-            { id: 33, cat: "Grammar", q: "By the time we arrived, the movie ________.", options: ["started", "has started", "had started", "is starting"], ans: "C", exp: "Past Perfect." },
-            { id: 34, cat: "Grammar", q: "I look forward ________ from you.", options: ["to hear", "hearing", "to hearing", "heard"], ans: "C", exp: "Look forward to + gerund." },
-            { id: 35, cat: "Grammar", q: "If only I ________ that yesterday!", options: ["know", "knew", "had known", "would know"], ans: "C", exp: "If only + Past Perfect for past regret." },
-
-            // [36-60: Vocabulary]
-            { id: 36, cat: "Vocab", q: "The account was ________, confusing everyone.", options: ["explicit", "ambiguous", "lucid", "detailed"], ans: "B", exp: "Ambiguous = unclear." },
-            { id: 37, cat: "Vocab", q: "The community is ________ after the flood.", options: ["fragile", "resilient", "despondent", "stubborn"], ans: "B", exp: "Resilient = recovering quickly." },
-            { id: 38, cat: "Vocab", q: "The scent was ________.", options: ["sweet", "weak", "pungent", "pleasant"], ans: "C", exp: "Pungent = sharp/strong." },
-            { id: 39, cat: "Vocab", q: "Pagers have become ________.", options: ["trendy", "obsolete", "essential", "innovative"], ans: "B", exp: "Obsolete = out of date." },
-            { id: 40, cat: "Vocab", q: "He is ________ in three languages.", options: ["interested", "proficient", "beginner", "confused"], ans: "B", exp: "Proficient = skilled." },
-            { id: 41, cat: "Vocab", q: "The market tends to ________.", options: ["rise only", "drop only", "fluctuate", "stay still"], ans: "C", exp: "Fluctuate = change irregularly." },
-            { id: 42, cat: "Vocab", q: "The donation was ________.", options: ["selfish", "altruistic", "brave", "greedy"], ans: "B", exp: "Altruistic = selfless." },
-            { id: 43, cat: "Vocab", q: "The records were ________.", options: ["signed", "scrutinized", "discarded", "copied"], ans: "B", exp: "Scrutinize = examine closely." },
-            { id: 44, cat: "Vocab", q: "The engine was ________, inducing sleep.", options: ["exciting", "monotonous", "loud", "short"], ans: "B", exp: "Monotonous = dull/repetitive." },
-            { id: 45, cat: "Vocab", q: "Elderly are ________ to heat.", options: ["safe", "vulnerable", "strong", "wealthy"], ans: "B", exp: "Vulnerable = at risk." },
-            { id: 46, cat: "Vocab", q: "The instructions were ________.", options: ["vague", "lucid", "confusing", "long"], ans: "B", exp: "Lucid = clear." },
-            { id: 47, cat: "Vocab", q: "The oil spill was ________.", options: ["minor", "catastrophic", "beautiful", "expected"], ans: "B", exp: "Catastrophic = disastrous." },
-            { id: 48, cat: "Vocab", q: "The whisper was ________.", options: ["visible", "audible", "tangible", "edible"], ans: "B", exp: "Audible = can be heard." },
-            { id: 49, cat: "Vocab", q: "The museum has a ________ collection.", options: ["limited", "diverse", "similar", "boring"], ans: "B", exp: "Diverse = varied." },
-            { id: 50, cat: "Vocab", q: "They worked in ________.", options: ["competition", "collaboration", "isolation", "opposition"], ans: "B", exp: "Collaboration = working together." },
-            { id: 51, cat: "Vocab", q: "The link was a ________ attempt.", options: ["phishing", "fishing", "phising", "fising"], ans: "A", exp: "Correct tech spelling." },
-            { id: 52, cat: "Vocab", q: "The error was ________.", options: ["negligible", "huge", "fatal", "important"], ans: "A", exp: "Negligible = tiny." },
-            { id: 53, cat: "Vocab", q: "The respond was ________.", options: ["vague", "concise", "long", "angry"], ans: "B", exp: "Concise = brief and clear." },
-            { id: 54, cat: "Vocab", q: "The project was ________.", options: ["feasible", "impossible", "hard", "easy"], ans: "A", exp: "Feasible = doable." },
-            { id: 55, cat: "Vocab", q: "The evidence was ________.", options: ["weak", "compelling", "fake", "old"], ans: "B", exp: "Compelling = convincing." },
-            { id: 56, cat: "Vocab", q: "The results were ________.", options: ["expected", "unprecedented", "common", "bad"], ans: "B", exp: "Unprecedented = never seen before." },
-            { id: 57, cat: "Vocab", q: "The suspect was ________.", options: ["ignored", "interrogated", "freed", "helped"], ans: "B", exp: "Interrogated = questioned." },
-            { id: 58, cat: "Vocab", q: "The climate is ________.", options: ["steady", "volatile", "fixed", "cold"], ans: "B", exp: "Volatile = unstable." },
-            { id: 59, cat: "Vocab", q: "The mistake was ________.", options: ["tiny", "blatant", "secret", "nice"], ans: "B", exp: "Blatant = obvious." },
-            { id: 60, cat: "Vocab", q: "She is ________ of the risks.", options: ["ignorant", "cognizant", "afraid", "bored"], ans: "B", exp: "Cognizant = aware." },
-
-            // [61-80: Functional Language]
-            { id: 61, cat: "Func", q: "Advice: 'I'm worried about the meeting.'", options: ["Don't be.", "Have you considered a briefing note?", "Relax.", "Easy."], ans: "B", exp: "Constructive advice." },
-            { id: 62, cat: "Func", q: "Favor: '________________ starting without me?'", options: ["Do you", "Would you mind", "Can you", "Will you"], ans: "B", exp: "Would you mind + gerund." },
-            { id: 63, cat: "Func", q: "Disagree: 'Move the deadline up?'", options: ["No.", "I see your point, but I'm concerned about quality.", "You're wrong.", "Bad idea."], ans: "B", exp: "Polite disagreement." },
-            { id: 64, cat: "Func", q: "Inquiry: 'Is the boss here?'", options: ["Yes.", "I'm not sure; let me check for you.", "Ask her.", "Maybe."], ans: "B", exp: "Helpful handling." },
-            { id: 65, cat: "Func", q: "Certainty: 'Is it finished?'", options: ["Think so.", "Absolutely positive; I checked twice.", "Maybe.", "Yes."], ans: "B", exp: "Professional certainty." },
-            { id: 66, cat: "Func", q: "Thanks: 'Thank you for the help.'", options: ["No problem.", "You're very welcome.", "It was my pleasure.", "B and C."], ans: "D", exp: "Both are formal." },
-            { id: 67, cat: "Func", q: "Interrupt: '________________, but I have a point.'", options: ["Hey", "If I could just interject", "Listen", "Excuse"], ans: "B", exp: "Formal interruption." },
-            { id: 68, cat: "Func", q: "Excuse: 'Why was it offline?'", options: ["It was.", "I apologize; we had a server issue.", "Ask IT.", "Fixed now."], ans: "B", exp: "Factual excuse." },
-            { id: 69, cat: "Func", q: "Acceptance: 'Use Tableau?'", options: ["It's software.", "That sounds like an excellent suggestion!", "Maybe.", "I don't mind."], ans: "B", exp: "Enthusiastic acceptance." },
-            { id: 70, cat: "Func", q: "Closing: 'I'll ________ up now.'", options: ["wrap", "end", "close", "finish"], ans: "A", exp: "Wrap up = finish." },
-            { id: 71, cat: "Func", q: "Intro: 'Mark, ________________ Pinky.'", options: ["look at", "this is", "meet", "greet"], ans: "B", exp: "Standard intro." },
-            { id: 72, cat: "Func", q: "Encouragement: 'Not sure it'll work.'", options: ["Will.", "I have confidence in your prep!", "It's hard.", "Good luck."], ans: "B", exp: "Specific encouragement." },
-            { id: 73, cat: "Func", q: "Permission: '________________ borrow this?'", options: ["Can I", "Would you mind if I", "Give me", "Will I"], ans: "B", exp: "Polite request." },
-            { id: 74, cat: "Func", q: "Opinion: 'What is your take?'", options: ["I like it.", "I find the SDGs integration very comprehensive.", "It's okay.", "I don't know."], ans: "B", exp: "Substantive opinion." },
-            { id: 75, cat: "Func", q: "Preference: 'Morning or afternoon?'", options: ["Either.", "Afternoon would be preferable, if that works.", "Don't care.", "You pick."], ans: "B", exp: "Polite preference." },
-            { id: 76, cat: "Func", q: "Surprise: 'We won!'", options: ["Good.", "Fantastic news! What an achievement!", "Okay.", "I see."], ans: "B", exp: "Acknowledging effort." },
-            { id: 77, cat: "Func", q: "Sympathy: 'Rejected.'", options: ["Too bad.", "I'm sorry; is there any way to appeal?", "Try again.", "Oh well."], ans: "B", exp: "Constructive sympathy." },
-            { id: 78, cat: "Func", q: "Directions: '________________ the office?'", options: ["Where is", "How do I get to", "Show me", "A and B"], ans: "D", exp: "Common phrases." },
-            { id: 79, cat: "Func", q: "Understanding: '____________________?' 'Yes.'", options: ["Got it?", "Does that clarify things?", "Understand?", "What?"], ans: "B", exp: "Formal check." },
-            { id: 80, cat: "Func", q: "Agreement: 'I couldn't agree ________.'", options: ["less", "more", "much", "at all"], ans: "B", exp: "Total agreement." },
-
-            // [81-100: Reading]
-            { id: 81, cat: "Read", q: "Digital Divide requires ________ leadership.", options: ["funding", "strategic", "hardware", "old"], ans: "B", exp: "Strategy over tech." },
-            { id: 82, cat: "Read", q: "SDG literacy ensures ________ awareness.", options: ["exam", "sustainability", "money", "math"], ans: "B", exp: "Context of SDGs." },
-            { id: 83, cat: "Read", q: "PBL helps apply ________ to challenges.", options: ["luck", "theory", "money", "rules"], ans: "B", exp: "Theory to practice." },
-            { id: 84, cat: "Read", q: "Tableau transforms data into ________.", options: ["pictures", "actionable insights", "spreadsheets", "files"], ans: "B", exp: "Purpose of visualization." },
-            { id: 85, cat: "Read", q: "New roles require ________.", options: ["luck", "adaptability", "salary", "routine"], ans: "B", exp: "Key skill." },
-            { id: 86, cat: "Read", q: "Fallacy is an error in ________.", options: ["fact", "reasoning", "law", "memory"], ans: "B", exp: "Definition." },
-            { id: 87, cat: "Read", q: "MUN focuses on ________.", options: ["math", "diplomacy", "sports", "art"], ans: "B", exp: "Core focus." },
-            { id: 88, cat: "Read", q: "Streamlining means ________.", options: ["complex", "efficient", "waterproof", "loud"], ans: "B", exp: "Efficiency." },
-            { id: 89, cat: "Read", q: "Exhibitions showcase ________ results.", options: ["final", "project-based", "random", "social"], ans: "B", exp: "Capstone purpose." },
-            { id: 90, cat: "Read", q: "Centralized access means ________ location.", options: ["hidden", "single", "remote", "teacher"], ans: "B", exp: "Single hub." },
-            { id: 91, cat: "Read", q: "Objective uses ________.", options: ["feelings", "facts", "popularity", "tradition"], ans: "B", exp: "Objectivity." },
-            { id: 92, cat: "Read", q: "Green buildings reduce ________ impact.", options: ["cost", "environmental", "modern", "visual"], ans: "B", exp: "Sustainability." },
-            { id: 93, cat: "Read", q: "Carbon footprint measures ________.", options: ["shoe", "emissions", "weight", "speed"], ans: "B", exp: "Metric." },
-            { id: 94, cat: "Read", q: "Habit loop is ________.", options: ["circle", "neurological pattern", "mistake", "rope"], ans: "B", exp: "Scientific term." },
-            { id: 95, cat: "Read", q: "Interjecting is ________.", options: ["loud", "polite interruption", "rude", "never"], ans: "B", exp: "Formal term." },
-            { id: 96, cat: "Read", q: "'Bridge the gap' means ________.", options: ["build bridge", "connect ideas", "cross river", "close"], ans: "B", exp: "Idiom." },
-            { id: 97, cat: "Read", q: "Acceptance tone?", options: ["casual", "formal/delighted", "angry", "bored"], ans: "B", exp: "Professional norm." },
-            { id: 98, cat: "Read", q: "Mentorship highlights ________.", options: ["money", "guidance", "furniture", "tests"], ans: "B", exp: "Mentorship focus." },
-            { id: 99, cat: "Read", q: "Acidification damages ________.", options: ["air", "reefs", "land", "trees"], ans: "B", exp: "Ocean impact." },
-            { id: 100, cat: "Read", q: "Innovation is ________.", options: ["copying", "new ideas", "old", "boring"], ans: "B", exp: "Innovation = novelty." }
-        ];
-
-        const FORMSPREE_ID = "mbdwjqnj";
-        let studentName = "";
-        let userAnswers = {};
-        const urlParams = new URLSearchParams(window.location.search);
-        const mode = urlParams.get('mode');
-
-        function begin() {
-            studentName = document.getElementById('student-name').value.trim();
-            if(!studentName) return alert("Please enter your name.");
-            document.getElementById('onboarding').classList.add('hidden');
-            document.getElementById('quiz-container').classList.remove('hidden');
-            document.getElementById('submit-btn').classList.remove('hidden');
-            renderQuestions();
-        }
-
-        function renderQuestions() {
-            const mount = document.getElementById('quiz-container');
-            const data = mode === 'full' ? QUESTIONS : QUESTIONS.slice(0, 35);
-            mount.innerHTML = data.map(q => `
-                <div class="bg-white p-10 rounded-[2rem] border border-gray-100 shadow-sm">
-                    <span class="text-xs font-bold text-accent uppercase tracking-widest">${q.cat}</span>
-                    <p class="text-xl mt-2 mb-6">${q.id}. ${q.q}</p>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        ${q.options.map((o, i) => {
-                            const L = String.fromCharCode(65+i);
-                            return `<button onclick="pick(${q.id}, '${L}')" id="q${q.id}-${L}" 
-                                    class="text-left p-4 border-2 rounded-xl hover:border-accent flex items-center transition-all">
-                                    <span class="w-8 h-8 flex items-center justify-center rounded-full bg-paper mr-3 font-bold border">${L}</span> ${o}
-                                    </button>`;
-                        }).join('')}
-                    </div>
-                </div>
-            `).join('');
-        }
-
-        function pick(qid, letter) {
-            ['A','B','C','D'].forEach(l => {
-                const el = document.getElementById(`q${qid}-${l}`);
-                if(el) { el.style.backgroundColor = 'white'; el.style.color = '#1a1a2e'; }
-            });
-            const sel = document.getElementById(`q${qid}-${letter}`);
-            sel.style.backgroundColor = '#1a1a2e';
-            sel.style.color = 'white';
-            userAnswers[qid] = letter;
-        }
-
-        async function submitExam() {
-            if(!confirm("Submit answers?")) return;
-            const data = mode === 'full' ? QUESTIONS : QUESTIONS.slice(0, 35);
-            let score = 0;
-            const mistakeLog = [];
-
-            data.forEach(q => {
-                const userChoice = userAnswers[q.id] || "None";
-                if(userChoice === q.ans) score++;
-                else mistakeLog.push({ id: q.id, u: userChoice, r: q.ans });
-            });
-
-            document.getElementById('quiz-container').classList.add('hidden');
-            document.getElementById('submit-btn').classList.add('hidden');
-            document.getElementById('results-view').classList.remove('hidden');
-            document.getElementById('final-score').innerText = `${score} / ${data.length}`;
-            
-            document.getElementById('review-mount').innerHTML = data.map(q => {
-                const ok = userAnswers[q.id] === q.ans;
-                return `<div class="p-6 rounded-2xl ${ok ? 'correct-bg' : 'incorrect-bg'}">
-                        <p class="font-bold">Q${q.id}: ${q.q}</p>
-                        <p class="text-sm">You: ${userAnswers[q.id]||'None'} | Correct: ${q.ans}</p>
-                        <p class="text-xs italic mt-2">Feedback: ${q.exp}</p>
-                    </div>`;
-            }).join('');
-
-            const mistakeStr = mistakeLog.map(m => `Q${m.id}: chose ${m.u}(correct:${m.r})`).join(' | ');
-            try {
-                await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name: studentName, score: `${score}/${data.length}`, mistakes: mistakeStr })
-                });
-            } catch (e) { console.error("Sync failed"); }
-            window.scrollTo(0,0);
-        }
-
-        function downloadPDF() {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            let y = 20;
-            doc.setFontSize(16);
-            doc.text(`SWU-SET Results: ${studentName}`, 20, y);
-            y += 15;
-            doc.text(`Score: ${document.getElementById('final-score').innerText}`, 20, y);
-            y += 20;
-            const data = mode === 'full' ? QUESTIONS : QUESTIONS.slice(0, 35);
-            data.forEach(q => {
-                if(userAnswers[q.id] !== q.ans) {
-                    if (y > 270) { doc.addPage(); y = 20; }
-                    doc.text(`Q${q.id}: Chosen ${userAnswers[q.id]||'N/A'} (Correct: ${q.ans})`, 20, y);
-                    y += 10;
-                }
-            });
-            doc.save(`${studentName}_Results.pdf`);
-        }
-    </script>
 </body>
 </html>
